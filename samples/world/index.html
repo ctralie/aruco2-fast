@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<title>Spinning World Augmented Reality Viewer</title>
+<meta charset="utf-8">
+
+<!-- three.js library -->
+<script type="text/javascript" src="../../samples/debug-posit/libs/Three.js"></script>
+
+<!-- Aruco2 AR Library-->
+<script type="text/javascript" src="../../src/svd.js"></script> 
+<script type="text/javascript" src="../../src/posit1.js"></script> 
+<script type="text/javascript" src="../../src/cv.js"></script> 
+<script type="text/javascript" src="../../src/aruco.js"></script> 
+<script type="text/javascript" src="../../src/arcanvas.js"></script> 
+
+<!-- Our Scripts -->
+
+</head>
+
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+<script>
+document.addEventListener('touchmove', function(e) {
+  e.preventDefault();
+});
+</script>
+
+
+<div id="arcanvas"></div>
+
+<script>
+  class WorldScene {
+    constructor() {
+      this.sceneRoot = new THREE.Group();
+      let object = new THREE.Object3D();
+      let geometry = new THREE.SphereGeometry(0.5, 15, 15, Math.PI);
+      let texture = THREE.ImageUtils.loadTexture("../debug-posit/textures/earth.jpg");
+      let material = new THREE.MeshBasicMaterial( {map: texture} );
+      let mesh = new THREE.Mesh(geometry, material);
+      object.add(mesh);
+      this.object = object;
+      this.sceneRoot.add(object);
+
+    }
+    step(dt) {
+      this.object.rotation.z += dt/1000;
+    }
+  }
+new ARCanvas("arcanvas", new WorldScene(), 500);
+</script>
+
+
+
+</body>
+</html>
