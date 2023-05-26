@@ -47,7 +47,8 @@ document.addEventListener('touchmove', function(e) {
       this.object.rotation.z += dt/1000;
     }
   }
-new ARCanvas("arcanvas", new WorldScene(), 500);
+  const config = {"dictionaryName":"ARUCO_MIP_36h12", nMarkers:10};
+new ARCanvas("arcanvas", new WorldScene(), 500, config);
 </script>
 
 

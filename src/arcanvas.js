@@ -38,9 +38,10 @@ class ARCanvas {
      * which is the root of the scene anchored to the markers, as well as
      * a step(dt) method which moves time forward for that scene
      * @param {float} modelSize Size of each marker in millimeters
+     * @param {dict} config Aruco detector configuration parameters
      * @param {int} k Number of markers being used
      */
-    constructor(divName, scene, modelSize=174.6, k=10) {
+    constructor(divName, scene, modelSize=174.6, config={}) {
         this.scene = scene;
         this.sceneRoot = scene.sceneRoot;
         const div = document.getElementById(divName);
@@ -59,47 +60,23 @@ class ARCanvas {
         this.debugArea = debugArea;
         div.appendChild(debugArea);
 
-
         this.modelSize = modelSize;
-        this.setupMarkers(k);
+
+        // Setup AR detector object
+        let detector = new AR.Detector(config);
+        const nMarkers = config.nMarkers || 10;
+        const markers = getDictionaryFurthest(detector.dictionary, nMarkers);
+        detector.markers = markers;
+        detector.dictionary.codeList = markers.map(i => detector.dictionary.codeList[i]);
+        this.detector = detector;
+        console.log(markers);
+
         if (document.readyState === "complete") {
             this.initializeVideo();
         }
         else {
             window.onload = this.initializeVideo.bind(this);
         }
-    }
-
-    /**
-     * Create a detector and do furthest point sampling
-     * in Hamming space to choose markers
-     * @param {int} k Number of markers to get
-     */
-    setupMarkers(k) {
-        let detector = new AR.Detector();
-        const dictionary = detector.dictionary;
-        this.detector = detector;
-        let markers = [0];
-        const N = dictionary.codeList.length;
-        let dists = dictionary.codeList.map(x => dictionary._hammingDistance(x, dictionary.codeList[0]))
-        for (let i = 1; i < k; i++) {
-            // Step 1: Find the maximum index
-            let idx = 0;
-            for (let j = 0; j < N; j++) {
-                if (dists[j] > dists[idx]) {
-                    idx = j;
-                }
-            }
-            markers.push(idx);
-            // Step 2: Update distances
-            for (let j = 0; j < N; j++) {
-                const newDist = dictionary._hammingDistance(dictionary.codeList[idx], dictionary.codeList[j]);
-                dists[j] = Math.min(dists[j], newDist);
-            }
-        }
-        markers.sort((a,b) => a-b);
-        detector.markers = markers;
-        dictionary.codeList = detector.markers.map(i => detector.dictionary.codeList[i]);
     }
 
     /**

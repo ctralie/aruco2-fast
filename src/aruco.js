@@ -33,6 +33,35 @@ var AR = {};
 var CV = this.CV || require('./cv').CV;
 this.AR = AR;
 
+/**
+ * Do furthest point sampling to find k furthest markers in
+ * a particular dictionary, including the first
+ * @param {object} dictionary Marker dictionary
+ * @param {int} k Number of markers to sample
+ */
+function getDictionaryFurthest(dictionary, k) {
+  let markers = [0];
+  const N = dictionary.codeList.length;
+  let dists = dictionary.codeList.map(x => dictionary._hammingDistance(x, dictionary.codeList[0]))
+  for (let i = 1; i < k; i++) {
+      // Step 1: Find the maximum index
+      let idx = 0;
+      for (let j = 0; j < N; j++) {
+          if (dists[j] > dists[idx]) {
+              idx = j;
+          }
+      }
+      markers.push(idx);
+      // Step 2: Update distances
+      for (let j = 0; j < N; j++) {
+          const newDist = dictionary._hammingDistance(dictionary.codeList[idx], dictionary.codeList[j]);
+          dists[j] = Math.min(dists[j], newDist);
+      }
+  }
+  markers.sort((a,b) => a-b);
+  return markers;
+}
+
 AR.DICTIONARIES = {
   ARUCO: {
     nBits: 25,
