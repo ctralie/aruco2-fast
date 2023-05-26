@@ -1,0 +1,88 @@
+<html>
+<head>
+  <title>Augmented Reality Marker Creator</title>
+  <script type="text/javascript" src="../../src/cv.js"></script> 
+  <script type="text/javascript" src="../../src/aruco.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/apriltag_16h5.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/apriltag_25h7.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/apriltag_25h9.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/apriltag_36h9.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/apriltag_36h10.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/apriltag_36h11.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/artag.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/artoolkitplus.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/artoolkitplusbch.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/aruco_4x4_1000.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/aruco_5x5_1000.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/aruco_6x6_1000.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/aruco_7x7_1000.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/aruco_default_opencv.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/aruco_mip_16h3.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/aruco_mip_25h7.js"></script> 
+  <script type="text/javascript" src="../../src/dictionaries/chilitags.js"></script> 
+  
+  <style>
+svg {
+  height:100%;
+  width: 100%;
+}
+#markerSVG {
+  height: 80%;
+  width: 80%;
+}
+  </style>
+</head>
+<body style="font-family: monospace;">
+  <div id = "mainDiv">
+    <div style="margin: 10px;"><strong>-= Augmented Reality Marker Printer =-</strong></div>
+    <br>
+    <table>
+      <tr><td>Dictionary: </td><td><select id="dictionarySelect"></td></tr>
+      <tr><td>Number of Markers: </td><td><input type="number" id="numInput" min="1"></input> </td></tr>
+      <tr><td><input type="button" value="Generate" onclick="updateImages()"></td><td></td></tr>
+    </table>
+    <div id="markerSVG"></div>
+    <div style="margin: 15px;"><strong>Powered by <a href="https://ctralie.github.io/aruco2-fast/">aruco2-fast</a></strong></div>
+  </div>
+
+
+
+
+  <script>
+    let dictionarySelect = document.getElementById("dictionarySelect");
+    let numInput = document.getElementById("numInput");
+    let mainDiv = document.getElementById("mainDiv");
+    numInput.value = 10;
+    let dictionary = null;
+
+    dictionarySelect.innerHTML = '';
+    Object.keys(AR.DICTIONARIES).forEach(function (dictionaryName) {
+      var option = document.createElement("option");
+      option.text = dictionaryName;
+      option.value = dictionaryName;
+      dictionarySelect.appendChild(option);
+    });
+    dictionarySelect.value = "ARUCO_MIP_36h12";
+
+    function updateImages() {
+        dictionary = new AR.Dictionary(dictionarySelect.value);
+        numInput.value = Math.min(numInput.value, dictionary.codeList.length);
+        numInput.setAttribute("max", dictionary.codeList.length);
+        let markers = getDictionaryFurthest(dictionary, numInput.value);
+        mainDiv.innerHTML = "";
+        console.log(markers);
+
+        markers.map(function(x) {
+            let image = document.createElement("div");
+            let s = dictionary.generateSVG(numInput.value);
+            image.innerHTML = "<h1>" + x + "</h1>" + s;
+            image.style.width="100%";
+            mainDiv.appendChild(image);
+
+        });
+      }
+
+  </script>
+</body>
+  
+</html>
