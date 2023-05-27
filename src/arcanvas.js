@@ -5,9 +5,9 @@ const CANVAS_FAC = 0.8;
  * @returns Three.js object with a video texture
  */
 function createVideoTexture(video){
-    let texture = new THREE.Texture(video);
+    let texture = new THREE.VideoTexture(video);
     let object = new THREE.Object3D();
-    let geometry = new THREE.PlaneGeometry(1.0, 1.0, 0.0);
+    let geometry = new THREE.BoxGeometry(1.0, 1.0, 0.01);
     let material = new THREE.MeshBasicMaterial({map: texture, depthTest: false, depthWrite: false});
     let mesh = new THREE.Mesh(geometry, material);
     object.position.z = -1;

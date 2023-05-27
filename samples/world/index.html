@@ -6,7 +6,9 @@
 <meta charset="utf-8">
 
 <!-- three.js library -->
-<script type="text/javascript" src="../../samples/debug-posit/libs/Three.js"></script>
+<!--<script type="text/javascript" src="../../samples/debug-posit/libs/Three.js"></script>!-->
+
+<script type="text/javascript" src="../../src/three/three.js"></script>
 
 <!-- Aruco2 AR Library-->
 <script type="text/javascript" src="../../src/svd.js"></script> 
@@ -30,18 +32,46 @@ document.addEventListener('touchmove', function(e) {
 <div id="arcanvas"></div>
 
 <script>
+  function getTexture(path) {
+      return new Promise(resolve => {
+          let material = new THREE.MeshBasicMaterial(); // create a material
+          var loader = new THREE.TextureLoader().load(
+              // resource URL
+              path,
+              // Function when resource is loaded
+              function (texture) {
+                  // do something with the texture
+                  texture.wrapS = THREE.RepeatWrapping;
+                  texture.wrapT = THREE.RepeatWrapping;
+                  material.map = texture; // set the material's map when when the texture is loaded
+                  resolve(material);
+              },
+              // Function called when download progresses
+              function ( xhr ) {
+                  console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
+              },
+              // Function called when download errors
+              function ( xhr ) {
+                  reject( 'An error happened' );
+              }
+          );
+          });
+      
+  }
+
+
   class WorldScene {
     constructor() {
+      const that = this;
       this.sceneRoot = new THREE.Group();
       let object = new THREE.Object3D();
       let geometry = new THREE.SphereGeometry(0.5, 15, 15, Math.PI);
-      let texture = THREE.ImageUtils.loadTexture("../debug-posit/textures/earth.jpg");
-      let material = new THREE.MeshBasicMaterial( {map: texture} );
-      let mesh = new THREE.Mesh(geometry, material);
-      object.add(mesh);
-      this.object = object;
-      this.sceneRoot.add(object);
-
+      getTexture("../debug-posit/textures/earth.jpg").then(function(material) {
+        let mesh = new THREE.Mesh(geometry, material);
+        object.add(mesh);
+        that.object = object;
+        that.sceneRoot.add(object);
+      })
     }
     step(dt) {
       this.object.rotation.z += dt/1000;
