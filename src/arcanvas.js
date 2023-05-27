@@ -253,7 +253,7 @@ class ARCanvas {
             if (!(pose === null)) {
                 updateObject(this.sceneRoot, this.modelSize, pose.bestRotation, pose.bestTranslation);
             }
-            this.videoTexture.children[0].material.map.needsUpdate = true;
+            //this.videoTexture.children[0].material.map.needsUpdate = true;
             renderer.autoClear = false;
             renderer.clear();
             renderer.render(this.videoScene, this.videoCamera);
