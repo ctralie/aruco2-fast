@@ -47,8 +47,9 @@ class ARCanvas {
         const div = document.getElementById(divName);
         let video = document.createElement("video");
         video.style = "display:none;";
-        video.autoplay = "true";
-        video.loop = "true";
+        video.autoplay = true;
+        video.loop = true;
+        video.controls = true;
         this.video = video;
         div.appendChild(video);
 
@@ -109,11 +110,9 @@ class ARCanvas {
         }).then(function(stream) {
             if ("srcObject" in video) {
                 video.srcObject = stream;
-                console.log("srcObject");
             }
             else {
                 video.src = window.URL.createObjectURL(stream);
-                console.log("stream");
             }
             video.onloadeddata = function() {
                 that.videoTexture = createVideoTexture(video);
