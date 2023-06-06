@@ -243,8 +243,8 @@ class ARCanvas {
         this.scene.step(elapsed);
         this.lastTime = thisTime;
         this.debugArea.innerHTML = "";
-        this.debugArea.innerHTML += "<p>" + Math.round(1000/elapsed) + " fps</p>";
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000/elapsed) + " fps</p>";
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             let markers = this.detector.detect(imageData);
@@ -261,7 +261,7 @@ class ARCanvas {
             renderer.render(this.parentScene, this.camera);
         }
         else {
-            console.log("Not enough video data: video state " + video.readyState);
+            this.debugArea.innerHTML += "<p>Not enough video data: video state " + video.readyState + "</p>";
         }
         requestAnimationFrame(this.repaint.bind(this));
     }
