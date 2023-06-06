@@ -259,6 +259,9 @@ class ARCanvas {
             renderer.render(this.videoScene, this.videoCamera);
             renderer.render(this.parentScene, this.camera);
         }
+        else {
+            console.log("Not enough video data: video state " + video.readyState);
+        }
         requestAnimationFrame(this.repaint.bind(this));
     }
 }
