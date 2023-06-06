@@ -51,7 +51,6 @@ class ARCanvas {
         video.loop = true;
         video.controls = true;
         this.video = video;
-        div.appendChild(video);
 
         let renderArea = document.createElement("div");
         renderArea.style = "float:left;";
