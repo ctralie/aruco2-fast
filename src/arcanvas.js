@@ -107,7 +107,8 @@ class ARCanvas {
                 width: {ideal:window.innerWidth*CANVAS_FAC},
                 facingMode: "environment"
             }
-        }).then(function(stream) {
+        }).then(async stream => {
+            await new Promise(resolve => setTimeout(resolve, 1000));
             if ("srcObject" in video) {
                 video.srcObject = stream;
             }
