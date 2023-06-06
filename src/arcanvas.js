@@ -48,6 +48,7 @@ class ARCanvas {
         let video = document.createElement("video");
         video.style = "display:none;";
         video.autoplay = true;
+        video.load();
         this.video = video;
         div.appendChild(video);
 
