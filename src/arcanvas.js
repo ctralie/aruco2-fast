@@ -1,4 +1,27 @@
 const CANVAS_FAC = 0.8;
+
+/**
+ * Update a DOM element to be fixed in the upper left of the screen
+ * @param {DOM Element} element Element to update
+ */
+function setUpperLeft(element) {
+    element['style']['position'] = "absolute";
+    element['style']['top'] = 0;
+    element['style']['left'] = 0;
+    element['style']['text-align'] = "left";
+}
+
+/**
+ * Set the width and height of a DOM element in pixels
+ * @param {DOM Element} element Element to update
+ * @param {float} width Width, in pixels
+ * @param {float} height Height, in pixels
+ */
+function setWidthHeight(element, width, height) {
+    element['style']['width'] = width + "px";
+    element['style']['height'] = height + "px";
+}
+
 /**
  * Create a Three.js texture that holds a video stream
  * @param {object} video HTML5 Video object
@@ -15,6 +38,13 @@ function createVideoTexture(video){
     return object;
 }
 
+/**
+ * Update affine parameters of a three.js object
+ * @param {three.js object} object Object to update
+ * @param {float} scale New scale (uniform in x, y, and z)
+ * @param {2d array} rotation 3x3 rotation matrix
+ * @param {array} translation xyz position
+ */
 function updateObject(object, scale, rotation, translation){
     object.scale.x = scale;
     object.scale.y = scale;
@@ -42,26 +72,18 @@ class ARCanvas {
      * @param {int} k Number of markers being used
      */
     constructor(divName, scene, modelSize=174.6, config={}) {
+        let div = document.getElementById(divName);
+        this.div = div;
         this.scene = scene;
         this.sceneRoot = scene.sceneRoot;
-        const div = document.getElementById(divName);
-        let video = document.createElement("video");
-        video.style = "display:none;";
-        video.autoplay = true;
-        video.loop = true;
-        video.controls = true;
-        this.video = video;
-
-        let renderArea = document.createElement("div");
-        renderArea.style = "float:left;";
-        this.renderArea = renderArea;
-        div.appendChild(renderArea);
-
-        let debugArea = document.createElement("p");
-        this.debugArea = debugArea;
-        div.appendChild(debugArea);
-
         this.modelSize = modelSize;
+
+        // Setup start button
+        let startButton = document.createElement("button");
+        startButton.innerHTML = "<h1>Start</h1>";
+        startButton.onclick = this.initializeVideo.bind(this);
+        div.appendChild(startButton);
+        this.startButton = startButton;
 
         // Setup AR detector object
         let detector = new AR.Detector(config);
@@ -70,23 +92,37 @@ class ARCanvas {
         detector.markers = markers;
         detector.dictionary.codeList = markers.map(i => detector.dictionary.codeList[i]);
         this.detector = detector;
-        console.log(markers);
-
-        if (document.readyState === "complete") {
-            this.initializeVideo();
-        }
-        else {
-            window.onload = this.initializeVideo.bind(this);
-        }
     }
 
     /**
      * Initialize a (back facing) video stream to fill the available window
      * as well as possible
+     * 
+     * As a side effect, remove the "start" button
      */
     initializeVideo() {
         const that = this;
-        const video = this.video;
+        const div = this.div;
+        let video = document.createElement("video");
+        this.startButton.style.display = "none";
+        // Suggested on https://github.com/jeeliz/jeelizFaceFilter/issues/14#issuecomment-682209245
+        video['style']['transform'] = 'scale(0.1,0.1)';
+        setUpperLeft(video);
+        video.setAttribute("muted", '');
+        video.setAttribute("playsinline", '');
+        video.setAttribute("autoplay", '');
+        video.setAttribute("loop", '');
+        this.video = video;
+
+        let renderArea = document.createElement("div");
+        setUpperLeft(renderArea);
+        this.renderArea = renderArea;
+        div.appendChild(renderArea);
+
+        let debugArea = document.createElement("p");
+        this.debugArea = debugArea;
+        div.appendChild(debugArea);
+
         if (navigator.mediaDevices === undefined) {
             navigator.mediaDevices = {};
         }
@@ -126,6 +162,28 @@ class ARCanvas {
     }
 
     /**
+     * Make the canvas as large as possible, preserving
+     * the aspect ratio of the video
+     */
+    resizeCanvas() {
+        let vw = this.video.videoWidth;
+        let vh = this.video.videoHeight;
+        let w = window.innerWidth;
+        let h = vh*w/vw;
+        if (h > window.innerHeight) {
+            const fac = window.innerHeight/h;
+            h *= fac;
+            w *= fac;
+        }
+        if (!(this.canvas == undefined)) {
+            setWidthHeight(this.canvas, w, h);
+        }
+        if (!(this.renderArea == undefined)) {
+            setWidthHeight(this.renderArea, w, h);
+        }
+    }
+
+    /**
      * Initialize a canvas to which to draw the video frame,
      * as well as a position tracker object to estimate positions
      * on canvas of the appropriate size
@@ -138,8 +196,14 @@ class ARCanvas {
         this.context = canvas.getContext("2d");
         this.posit = new POS.Posit(this.modelSize, this.video.videoWidth);
         this.lastTime = new Date();
+        window.onresize = this.resizeCanvas.bind(this);
+        this.resizeCanvas();
     }
 
+    /**
+     * Setup a perspective camera for the three.js scene with the proper
+     * field of view, and setup a video texture for the streaming video
+     */
     setupScene() {
         const renderArea = this.renderArea;
         renderArea.width = this.video.videoWidth;
