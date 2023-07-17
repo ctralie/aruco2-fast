@@ -165,7 +165,7 @@ class ARCanvas {
      * Make the canvas as large as possible, preserving
      * the aspect ratio of the video
      */
-    resizeCanvas() {
+    resizeRenderer() {
         let vw = this.video.videoWidth;
         let vh = this.video.videoHeight;
         let w = window.innerWidth;
@@ -175,11 +175,8 @@ class ARCanvas {
             h *= fac;
             w *= fac;
         }
-        if (!(this.canvas == undefined)) {
-            setWidthHeight(this.canvas, w, h);
-        }
-        if (!(this.renderArea == undefined)) {
-            setWidthHeight(this.renderArea, w, h);
+        if (!(this.renderer == undefined)) {
+            setWidthHeight(this.renderer.domElement, w, h);
         }
     }
 
@@ -196,8 +193,8 @@ class ARCanvas {
         this.context = canvas.getContext("2d");
         this.posit = new POS.Posit(this.modelSize, this.video.videoWidth);
         this.lastTime = new Date();
-        window.onresize = this.resizeCanvas.bind(this);
-        this.resizeCanvas();
+        window.onresize = this.resizeRenderer.bind(this);
+        this.resizeRenderer();
     }
 
     /**
