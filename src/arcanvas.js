@@ -228,12 +228,18 @@ class ARCanvas {
         this.videoScene.add(this.videoCamera);
         this.videoScene.add(this.videoTexture);
 
-        // Step 3: Setup renderer object
+        // Step 3: Setup renderer object for scene and camera
         const renderer = new THREE.WebGLRenderer({antialias:true});
         this.renderer = renderer;
         renderer.setClearColor(0xffffff, 1);
         renderer.setSize(this.canvas.width, this.canvas.height);
         renderArea.appendChild(renderer.domElement);
+
+        // Step 4: Setup offscreen renderer object
+        const oscRenderer = new THREE.WebGLRenderer();
+        oscRenderer.setSize(this.video.videoWidth, this.video.videoHeight);
+        this.oscRenderer = oscRenderer;
+        this.oscScene = new THREE.Scene();
     }
 
     /**
@@ -313,7 +319,7 @@ class ARCanvas {
             this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000*this.framesRendered/(thisTime-this.startTime)) + " fps</p>";
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            let markers = this.detector.detectFast(imageData);
+            let markers = this.detector.detect(imageData);
             this.printMarkers(markers);
             this.drawCorners(markers);
             let pose = this.getPose(markers);
