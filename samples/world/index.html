@@ -8,14 +8,24 @@
 <!-- three.js library -->
 <!--<script type="text/javascript" src="../../samples/debug-posit/libs/Three.js"></script>!-->
 
-<script type="text/javascript" src="../../src/three/three.js"></script>
+<script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+<script type="importmap">
+  {
+    "imports": {
+      "three": "../../src/three/three.module.js",
+      "three/addons/": "../../src/three/jsm/",
+      "arcanvas": "../../src/arcanvas.js"
+    }
+  }
+</script>
 
 <!-- Aruco2 AR Library-->
 <script type="text/javascript" src="../../src/svd.js"></script> 
 <script type="text/javascript" src="../../src/posit1.js"></script> 
 <script type="text/javascript" src="../../src/cv.js"></script> 
 <script type="text/javascript" src="../../src/aruco.js"></script> 
-<script type="text/javascript" src="../../src/arcanvas.js"></script> 
+
 
 <!-- Our Scripts -->
 
@@ -31,7 +41,10 @@ document.addEventListener('touchmove', function(e) {
 
 <div id="arcanvas"></div>
 
-<script>
+<script type="module">
+  import * as THREE from 'three';
+  import {ARCanvas} from 'arcanvas';
+
   function getTexture(path) {
       return new Promise(resolve => {
           let material = new THREE.MeshBasicMaterial(); // create a material

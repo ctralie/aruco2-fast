@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 const CANVAS_FAC = 1;
 
 /**
@@ -337,3 +339,5 @@ class ARCanvas {
         requestAnimationFrame(this.repaint.bind(this));
     }
 }
+
+export {ARCanvas};
