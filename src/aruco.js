@@ -304,6 +304,25 @@ AR.Detector.prototype.detect = function (image) {
   return this.findMarkers(this.grey, this.candidates, 49);
 };
 
+AR.Detector.prototype.detectFast = function (image) {
+  //CV.grayscale(image, this.grey);
+  this.grey.width = image.width;
+  this.grey.height = image.height;
+  for (let i = 0; i < image.data.length/4; i++) {
+    this.grey.data[i] = image.data[i*4];
+  }
+  CV.adaptiveThreshold(this.grey, this.thres, 3, 7);
+
+  this.contours = CV.findContours(this.thres, this.binary);
+  //Scale Fix: https://stackoverflow.com/questions/35936397/marker-detection-on-paper-sheet-using-javascript
+  //this.candidates = this.findCandidates(this.contours, image.width * 0.20, 0.05, 10);
+  this.candidates = this.findCandidates(this.contours, this.grey.width * 0.01, 0.05, 10);
+  this.candidates = this.clockwiseCorners(this.candidates);
+  this.candidates = this.notTooNear(this.candidates, 10);
+
+  return this.findMarkers(this.grey, this.candidates, 49);
+};
+
 AR.Detector.prototype.findCandidates = function (contours, minSize, epsilon, minLength) {
   var candidates = [],
     len = contours.length,

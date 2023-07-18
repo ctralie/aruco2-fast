@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 const CANVAS_FAC = 1;
 
@@ -155,6 +158,7 @@ class ARCanvas {
             }
             video.onloadeddata = function() {
                 that.videoTexture = createVideoTexture(video);
+                that.videoTextureFilter = createVideoTexture(video);
                 that.initializeCanvas();
                 that.setupScene();
                 that.repaint();
@@ -193,6 +197,7 @@ class ARCanvas {
         canvas.width = this.video.videoWidth;
         canvas.height = this.video.videoHeight;
         this.canvas = canvas;
+        this.renderArea.appendChild(canvas);
         this.context = canvas.getContext("2d");
         this.posit = new POS.Posit(this.modelSize, this.video.videoWidth);
         this.lastTime = new Date();
@@ -229,6 +234,12 @@ class ARCanvas {
         this.videoCamera = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5);
         this.videoScene.add(this.videoCamera);
         this.videoScene.add(this.videoTexture);
+        // Step 2b: Setup a duplicate of this to use with CV filters for the
+        // marker detection
+        this.cvScene = new THREE.Scene();
+        this.cvCamera = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5);
+        this.cvScene.add(this.cvCamera);
+        this.cvScene.add(this.videoTextureFilter);
 
         // Step 3: Setup renderer object for scene and camera
         const renderer = new THREE.WebGLRenderer({antialias:true});
@@ -237,11 +248,26 @@ class ARCanvas {
         renderer.setSize(this.canvas.width, this.canvas.height);
         renderArea.appendChild(renderer.domElement);
 
-        // Step 4: Setup offscreen renderer object
-        const oscRenderer = new THREE.WebGLRenderer();
-        oscRenderer.setSize(this.video.videoWidth, this.video.videoHeight);
-        this.oscRenderer = oscRenderer;
-        this.oscScene = new THREE.Scene();
+        // Step 4: Setup composite renderer for the CV filters
+        this.cvPixels = new Uint8ClampedArray(4*this.video.videoWidth*this.video.videoHeight);
+        const cvRenderer = new THREE.WebGLRenderer({antialias:false});
+        //renderArea.appendChild(cvRenderer.domElement);
+        cvRenderer.setSize(this.video.videoWidth, this.video.videoHeight);
+        this.cvRenderer = cvRenderer;
+        let cvFilters = new EffectComposer(cvRenderer);
+        const initialWebcam = new RenderPass(this.cvScene, this.cvCamera);
+        cvFilters.addPass(initialWebcam);
+
+        this.grayscaleFilter = new ShaderPass(CV.GrayscaleAndFlipShader);
+        cvFilters.addPass(this.grayscaleFilter);
+
+        //const scenePass = new RenderPass(this.parentScene, this.camera);
+        //composer.addPass(scenePass);
+        this.cvFilters = cvFilters;
+        this.cvgl = cvRenderer.getContext("webgl");
+
+        this.img = document.createElement("img");
+        renderArea.appendChild(this.img);
     }
 
     /**
@@ -292,14 +318,14 @@ class ARCanvas {
      * @param {list} markers List of markers
      */
     getPose(markers) {
-        const canvas = this.canvas;
+        const video = this.video;
         let pose = null;
         for (let i = 0; i < markers.length; i++) {
             let corners = markers[i].corners;
             for (let k = 0; k < corners.length; k++) {
                 let corner = corners[k];
-                corner.x = corner.x - canvas.width/2;
-                corner.y = canvas.height/2 - corner.y;
+                corner.x = corner.x - video.videoWidth/2;
+                corner.y = video.videoHeight/2 - corner.y;
             }
             pose = this.posit.pose(corners);
         }
@@ -319,9 +345,14 @@ class ARCanvas {
         this.debugArea.innerHTML = "";
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
             this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000*this.framesRendered/(thisTime-this.startTime)) + " fps</p>";
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            let markers = this.detector.detect(imageData);
+
+            this.cvFilters.render();
+            this.cvgl.readPixels(0, 0, this.video.videoWidth, this.video.videoHeight, this.cvgl.RGBA, this.cvgl.UNSIGNED_BYTE, this.cvPixels);
+            let data = new ImageData(this.cvPixels, this.video.videoWidth, this.video.videoHeight);
+            let markers = this.detector.detectFast(data);
+            context.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
+            context.putImageData(data, 0, 0);
+
             this.printMarkers(markers);
             this.drawCorners(markers);
             let pose = this.getPose(markers);
