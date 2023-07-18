@@ -1,4 +1,4 @@
-const CANVAS_FAC = 0.8;
+const CANVAS_FAC = 1;
 
 /**
  * Update a DOM element to be fixed in the upper left of the screen
@@ -120,6 +120,7 @@ class ARCanvas {
         div.appendChild(renderArea);
 
         let debugArea = document.createElement("p");
+        setUpperLeft(debugArea);
         this.debugArea = debugArea;
         div.appendChild(debugArea);
 
@@ -168,7 +169,7 @@ class ARCanvas {
     resizeRenderer() {
         let vw = this.video.videoWidth;
         let vh = this.video.videoHeight;
-        let w = window.innerWidth;
+        let w = window.innerWidth*CANVAS_FAC;
         let h = vh*w/vw;
         if (h > window.innerHeight) {
             const fac = window.innerHeight/h;
@@ -193,6 +194,8 @@ class ARCanvas {
         this.context = canvas.getContext("2d");
         this.posit = new POS.Posit(this.modelSize, this.video.videoWidth);
         this.lastTime = new Date();
+        this.startTime = this.lastTime;
+        this.framesRendered = 0;
         window.onresize = this.resizeRenderer.bind(this);
         this.resizeRenderer();
     }
@@ -251,7 +254,7 @@ class ARCanvas {
     }
 
     /**
-     * Draw the corners of all fo the markers to the canvas for
+     * Draw the corners of all of the markers to the canvas for
      * debugging
      * @param {list} markers List of markers
      */
@@ -304,19 +307,19 @@ class ARCanvas {
         let elapsed = thisTime - this.lastTime;
         this.scene.step(elapsed);
         this.lastTime = thisTime;
+        this.framesRendered += 1;
         this.debugArea.innerHTML = "";
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000/elapsed) + " fps</p>";
+            this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000*this.framesRendered/(thisTime-this.startTime)) + " fps</p>";
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            let markers = this.detector.detect(imageData);
+            let markers = this.detector.detectFast(imageData);
             this.printMarkers(markers);
             this.drawCorners(markers);
             let pose = this.getPose(markers);
             if (!(pose === null)) {
                 updateObject(this.sceneRoot, this.modelSize, pose.bestRotation, pose.bestTranslation);
             }
-            //this.videoTexture.children[0].material.map.needsUpdate = true;
             renderer.autoClear = false;
             renderer.clear();
             renderer.render(this.videoScene, this.videoCamera);
