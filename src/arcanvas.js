@@ -218,7 +218,11 @@ class ARCanvas {
         // Step 1: Setup scene and link in scene root
         const parentScene = new THREE.Scene();
         this.parentScene = parentScene;
-        const camera = new THREE.PerspectiveCamera(40, renderArea.width / renderArea.height, 1, 10000);
+        let fov = 40;
+        if (renderArea.height > renderArea.width) {
+            fov = 180*2*Math.atan((renderArea.height/renderArea.width)*Math.tan(20*Math.PI/180))/Math.PI;
+        }
+        const camera = new THREE.PerspectiveCamera(fov, renderArea.width / renderArea.height, 1, 10000);
         this.camera = camera;
         parentScene.add(camera);
         parentScene.add(this.sceneRoot);
