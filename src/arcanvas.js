@@ -222,6 +222,7 @@ class ARCanvas {
         if (renderArea.height > renderArea.width) {
             fov = 180*2*Math.atan((renderArea.height/renderArea.width)*Math.tan(20*Math.PI/180))/Math.PI;
         }
+        this.fov = fov;
         const camera = new THREE.PerspectiveCamera(fov, renderArea.width / renderArea.height, 1, 10000);
         this.camera = camera;
         parentScene.add(camera);
@@ -350,7 +351,7 @@ class ARCanvas {
         this.framesRendered += 1;
         this.debugArea.innerHTML = "";
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000*this.framesRendered/(thisTime-this.startTime)) + " fps, " + video.videoWidth + " x " + video.videoHeight + "</p>";
+            this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000*this.framesRendered/(thisTime-this.startTime)) + " fps, " + video.videoWidth + " x " + video.videoHeight + ", fov " + this.fov + "</p>";
 
             /*
             this.cvFilters.render();
