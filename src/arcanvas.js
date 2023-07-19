@@ -346,7 +346,7 @@ class ARCanvas {
         this.framesRendered += 1;
         this.debugArea.innerHTML = "";
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000*this.framesRendered/(thisTime-this.startTime)) + " fps</p>";
+            this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000*this.framesRendered/(thisTime-this.startTime)) + " fps, " + video.videoWidth + " x " + video.videoHeight + "</p>";
 
             /*
             this.cvFilters.render();
