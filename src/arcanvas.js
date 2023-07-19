@@ -221,14 +221,13 @@ class ARCanvas {
         const parentScene = new THREE.Scene();
         this.parentScene = parentScene;
         let fov = 40;
-        let aspect = W/H;
         if (H > W) {
-            aspect = H/W;
-            fov = 2*Math.atan(aspect*Math.tan((fov/2)*Math.PI/180));
+            fov = 2*Math.atan((H/W)*Math.tan((fov/2)*Math.PI/180));
             fov *= 180/Math.PI;
+            fov *= 1.3; // TODO: This is a hack for vertically oriented cameras; I'm not sure why it works
         }
         this.fov = fov;
-        const camera = new THREE.PerspectiveCamera(fov, aspect, 1, 10000);
+        const camera = new THREE.PerspectiveCamera(fov, W/H, 1, 10000);
         this.camera = camera;
         parentScene.add(camera);
         parentScene.add(this.sceneRoot);
