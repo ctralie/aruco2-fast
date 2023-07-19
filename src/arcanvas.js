@@ -224,7 +224,7 @@ class ARCanvas {
         if (H > W) {
             fov = 2*Math.atan((H/W)*Math.tan((fov/2)*Math.PI/180));
             fov *= 180/Math.PI;
-            fov *= 1.3;
+            fov *= H/W;
         }
         this.fov = fov;
         const camera = new THREE.PerspectiveCamera(fov, W/H, 1, 10000);
