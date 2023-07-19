@@ -220,10 +220,11 @@ class ARCanvas {
         this.parentScene = parentScene;
         let fov = 40;
         if (renderArea.height > renderArea.width) {
-            fov = 2*Math.atan((renderArea.width/renderArea.height)*Math.tan( (fov/2)*Math.PI/180))*(180)/Math.PI;
+            fov = 2*Math.atan((renderArea.height/renderArea.width)*Math.tan((fov/2)*Math.PI/180));
+            fov *= 180/Math.PI;
         }
         this.fov = fov;
-        const camera = new THREE.PerspectiveCamera(fov, renderArea.width / renderArea.height, 1, 10000);
+        const camera = new THREE.PerspectiveCamera(fov, renderArea.width/renderArea.height, 1, 10000);
         this.camera = camera;
         parentScene.add(camera);
         parentScene.add(this.sceneRoot);
