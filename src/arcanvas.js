@@ -145,7 +145,8 @@ class ARCanvas {
         }
         navigator.mediaDevices.getUserMedia({
             video:{
-                width: {ideal:window.innerWidth*CANVAS_FAC},
+                width: 320,
+                height: 240,
                 facingMode: "environment"
             }
         }).then(async stream => {
@@ -197,14 +198,12 @@ class ARCanvas {
         canvas.width = this.video.videoWidth;
         canvas.height = this.video.videoHeight;
         this.canvas = canvas;
-        this.renderArea.appendChild(canvas);
+        //this.renderArea.appendChild(canvas);
         this.context = canvas.getContext("2d");
         this.posit = new POS.Posit(this.modelSize, this.video.videoWidth);
         this.lastTime = new Date();
         this.startTime = this.lastTime;
         this.framesRendered = 0;
-        window.onresize = this.resizeRenderer.bind(this);
-        this.resizeRenderer();
     }
 
     /**
@@ -245,7 +244,7 @@ class ARCanvas {
         const renderer = new THREE.WebGLRenderer({antialias:true});
         this.renderer = renderer;
         renderer.setClearColor(0xffffff, 1);
-        renderer.setSize(this.canvas.width, this.canvas.height);
+        renderer.setSize(this.canvas.width*3, this.canvas.height*3);
         renderArea.appendChild(renderer.domElement);
 
         // Step 4: Setup composite renderer for the CV filters
@@ -268,6 +267,9 @@ class ARCanvas {
 
         this.img = document.createElement("img");
         renderArea.appendChild(this.img);
+
+        window.onresize = this.resizeRenderer.bind(this);
+        this.resizeRenderer();
     }
 
     /**
@@ -346,12 +348,16 @@ class ARCanvas {
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
             this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000*this.framesRendered/(thisTime-this.startTime)) + " fps</p>";
 
+            /*
             this.cvFilters.render();
             this.cvgl.readPixels(0, 0, this.video.videoWidth, this.video.videoHeight, this.cvgl.RGBA, this.cvgl.UNSIGNED_BYTE, this.cvPixels);
             let data = new ImageData(this.cvPixels, this.video.videoWidth, this.video.videoHeight);
             let markers = this.detector.detectFast(data);
-            context.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
-            context.putImageData(data, 0, 0);
+            //context.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
+            //context.putImageData(data, 0, 0);*/
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            let markers = this.detector.detect(imageData);
 
             this.printMarkers(markers);
             this.drawCorners(markers);

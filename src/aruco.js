@@ -311,7 +311,7 @@ AR.Detector.prototype.detectFast = function (image) {
   for (let i = 0; i < image.data.length/4; i++) {
     this.grey.data[i] = image.data[i*4];
   }
-  CV.adaptiveThreshold(this.grey, this.thres, 3, 7);
+  CV.adaptiveThreshold(this.grey, this.thres, 2, 7);
 
   this.contours = CV.findContours(this.thres, this.binary);
   //Scale Fix: https://stackoverflow.com/questions/35936397/marker-detection-on-paper-sheet-using-javascript
