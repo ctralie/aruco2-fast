@@ -5,9 +5,6 @@
 <title>Spinning World Augmented Reality Viewer</title>
 <meta charset="utf-8">
 
-<!-- three.js library -->
-<!--<script type="text/javascript" src="../../samples/debug-posit/libs/Three.js"></script>!-->
-
 <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
 
 <script type="importmap">
@@ -21,6 +18,7 @@
 </script>
 
 <!-- Aruco2 AR Library-->
+<script type="text/javascript" src="../../src/gl-matrix-min.js"></script> 
 <script type="text/javascript" src="../../src/svd.js"></script> 
 <script type="text/javascript" src="../../src/posit1.js"></script> 
 <script type="text/javascript" src="../../src/cv.js"></script> 
@@ -44,7 +42,7 @@ document.addEventListener('touchmove', function(e) {
 
 <script type="module">
   import * as THREE from 'three';
-  import {ARCanvas} from 'arcanvas';
+  import {ARCanvas, ARCanvasMultiAverage} from 'arcanvas';
 
   function getTexture(path) {
       return new Promise(resolve => {
@@ -91,8 +89,8 @@ document.addEventListener('touchmove', function(e) {
       this.object.rotation.z += dt/1000;
     }
   }
-  const config = {"dictionaryName":"ARUCO_MIP_36h12", nMarkers:10};
-  let canvas = new ARCanvas("arcanvas", new WorldScene(), 500, config);
+  const config = {"dictionaryName":"ARUCO_MIP_36h12", nMarkers:14};
+  let canvas = new ARCanvasMultiAverage("arcanvas", new WorldScene(), 500, config);
 </script>
 
 

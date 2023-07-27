@@ -5,6 +5,18 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 const CANVAS_FAC = 1;
 
+function rot3dArr2glMatrix(r) {
+    return glMatrix.mat3.fromValues(
+        r[0][0], r[0][1], r[0][2], 
+        r[1][0], r[1][1], r[1][2],
+        r[2][0], r[2][1], r[2][2]
+    );
+}
+
+function glMatrix2Rot3dArr(m) {
+    return [[m[0], m[1], m[2]], [m[3], m[4], m[5]], [m[6], m[7], m[8]]];
+}
+
 /**
  * Update a DOM element to be fixed in the upper left of the screen
  * @param {DOM Element} element Element to update
@@ -386,4 +398,88 @@ class ARCanvas {
     }
 }
 
-export {ARCanvas};
+
+class ARCanvasMultiAverage extends ARCanvas {
+    /**
+     * 
+     * @param {string} divName The name of the div to which to add
+     *                         this ARCanvas session
+     * @param {object} scene An object containing a THREE.Group sceneRoot,
+     * which is the root of the scene anchored to the markers, as well as
+     * a step(dt) method which moves time forward for that scene
+     * @param {float} modelSize Size of each marker in millimeters
+     * @param {dict} config Aruco detector configuration parameters.  Can specify
+     *                      "offsets": dictionary of offsets: marker ID -> [x, y, z]
+     * @param {int} k Number of markers being used
+     */
+    constructor(divName, scene, modelSize=174.6, config={}) {
+        super(divName, scene, modelSize, config);
+        let markerHeight = config.markerHeight || 279.4; // 11" tall paper, in millimeters
+        this.offsets = config.offsets || {
+            "0":  [0, 0, -markerHeight*3],
+            "4":  [0, 0, -markerHeight*2],
+            "5":  [0, 0, -markerHeight*1],
+            "11": [0, 0,  markerHeight*0],
+            "23": [0, 0,  markerHeight*1],
+            "26": [0, 0,  markerHeight*2],
+            "69": [0, 0,  markerHeight*3]
+        };
+    }
+
+    getPose(markers) {
+        super.getPose(markers); // Update corners appropriately
+        let pose = null;
+        let q = glMatrix.quat.create();
+        let t = glMatrix.vec3.create();
+        // Step 1: Figure out average rotation
+        if (markers.length > 0) {
+            markers = [markers[0]];
+        }
+        let count = 0;
+        for (let i = 0; i < markers.length; i++) {
+            if (markers[i].id in this.offsets) {
+                count++;
+                pose = this.posit.pose(markers[i].corners);
+                let ri = rot3dArr2glMatrix(pose.bestRotation);
+                let qi = glMatrix.quat.create();
+                glMatrix.quat.fromMat3(qi, ri);
+                if (count == 1) {
+                    q = qi;
+                }
+                else {
+                    glMatrix.quat.slerp(q, q, qi, 1/count);
+                }
+            }
+        }
+        // Step 2: Figure out average translation
+        count = 0;
+        for (let i = 0; i < markers.length; i++) {
+            if (markers[i].id in this.offsets) {
+                count++;
+                pose = this.posit.pose(markers[i].corners);
+                let ti = pose.bestTranslation;
+                // Subtract off offset in world coordinates
+                let du = glMatrix.vec3.clone(this.offsets[markers[i].id]);
+                glMatrix.vec3.transformQuat(du, du, q);
+                //glMatrix.vec3.sub(ti, ti, du);
+                if (count == 1) {
+                    t = ti;
+                }
+                else {
+                    glMatrix.vec3.add(t, t, ti);
+                }
+            }
+        }
+        if (count > 0) {
+            glMatrix.vec3.scale(t, t, 1/count);
+            let m = glMatrix.mat3.create();
+            glMatrix.mat3.fromQuat(m, q);
+            pose.bestTranslation = t;
+            pose.bestRotation = glMatrix2Rot3dArr(m);
+        }
+        return pose;
+    }
+}
+
+
+export {ARCanvas, ARCanvasMultiAverage};
