@@ -72,10 +72,18 @@ svg {
         mainDiv.innerHTML = "";
         console.log(markers);
 
-        markers.map(function(x) {
+        markers.map(function(x, i) {
+            let label = "L";
+            if (i >= markers.length/2) {
+              label = "R";
+              i -= markers.length/2;
+            }
+            label += (i+1);
             let image = document.createElement("div");
-            let s = dictionary.generateSVG(numInput.value);
-            image.innerHTML = "<h1>" + x + "</h1>" + s;
+            let s = dictionary.generateSVG(x);
+            let xstr = "000" + x;
+            xstr = xstr.substr(xstr.length-3);
+            image.innerHTML = "<table style=\"width:100%\"><tr><td><h3>" + label + "</h3><h3>" + xstr + "</h3></td><td>" + s + "</td></tr></table>";
             image.style.width="100%";
             mainDiv.appendChild(image);
 
