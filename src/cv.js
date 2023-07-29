@@ -311,11 +311,11 @@ CV.gaussianKernel = function(kernelSize){
   return kernel;
 };
 
-CV.findContours = function(imageSrc, binary){
+CV.findContours = function(imageSrc, binary, borderFn){
   var width = imageSrc.width, height = imageSrc.height, contours = [],
       src, deltas, pos, pix, nbd, outer, hole, i, j;
 
-  src = CV.binaryBorder(imageSrc, binary);
+  src = borderFn(imageSrc, binary);
 
   deltas = CV.neighborhoodDeltas(width + 2);
 
@@ -346,7 +346,7 @@ CV.findContours = function(imageSrc, binary){
     }
   }
 
-  return contours;
+  return {"contours":contours, "src":src};
 };
 
 CV.borderFollowing = function(src, pos, nbd, point, hole, deltas){
@@ -724,6 +724,33 @@ CV.binaryBorder = function(imageSrc, dst){
 
     for (j = 0; j < width; ++ j){
       dst[posDst ++] = (0 === src[posSrc ++]? 0: 1);
+    }
+
+    dst[posDst ++] = 0;
+  }
+
+  for (j = -2; j < width; ++ j){
+    dst[posDst ++] = 0;
+  }
+
+  return dst;
+};
+
+CV.binaryBorderRGBA = function(imageSrc, dst){
+  var src = imageSrc.data, height = imageSrc.height, width = imageSrc.width,
+      posSrc = 0, posDst = 0, i, j;
+
+  for (j = -2; j < width; ++ j){
+    dst[posDst ++] = 0;
+  }
+
+  for (i = 0; i < height; ++ i){
+    dst[posDst ++] = 0;
+
+    for (j = 0; j < width; ++ j){
+      dst[posDst] = (src[posSrc*4] == 0) ? 0:1;
+      posDst++;
+      posSrc++;
     }
 
     dst[posDst ++] = 0;

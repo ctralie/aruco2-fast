@@ -3,7 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
-const CANVAS_FAC = 1;
+const CANVAS_FAC = 0.6;
 
 function rot3dArr2glMatrix(r) {
     return glMatrix.mat3.fromValues(
@@ -94,6 +94,20 @@ class ARCanvas {
         this.scene = scene;
         this.sceneRoot = scene.sceneRoot;
         this.modelSize = modelSize;
+        this.debugCanvas = false;
+        if (!(config.debugCanvas == undefined)) {
+            this.debugCanvas = config.debugCanvas;
+        }
+        this.smoothFilterThresh = config.smoothFilterThresh || 0.5;
+        this.useGPU = true;
+        if (!(config.useGPU == undefined)) {
+            this.useGPU = config.useGPU;
+        }
+        this.doDrawContours = false;
+        if (!(config.doDrawContours == undefined)) {
+            this.doDrawContours = config.doDrawContours;
+        }
+        
 
         // Setup start button
         let startButton = document.createElement("button");
@@ -157,8 +171,8 @@ class ARCanvas {
         }
         navigator.mediaDevices.getUserMedia({
             video:{
-                width: 320,
-                height: 240,
+                width: 800,
+                height: 600,
                 facingMode: "environment"
             }
         }).then(async stream => {
@@ -210,7 +224,9 @@ class ARCanvas {
         canvas.width = this.video.videoWidth;
         canvas.height = this.video.videoHeight;
         this.canvas = canvas;
-        //this.renderArea.appendChild(canvas);
+        if (this.debugCanvas) {
+            this.renderArea.appendChild(canvas);
+        }
         this.context = canvas.getContext("2d");
         this.posit = new POS.Posit(this.modelSize, this.video.videoWidth);
         this.lastTime = new Date();
@@ -281,6 +297,15 @@ class ARCanvas {
         this.grayscaleFilter = new ShaderPass(CV.GrayscaleAndFlipShader);
         cvFilters.addPass(this.grayscaleFilter);
 
+        this.gaussFilterX = new ShaderPass(CV.getGaussFilt1d(1, 1/this.video.videoWidth));
+        cvFilters.addPass(this.gaussFilterX);
+
+        this.gaussFilterY = new ShaderPass(CV.getGaussFilt1d(0, 1/this.video.videoHeight));
+        cvFilters.addPass(this.gaussFilterY);
+
+        this.threshFilter = new ShaderPass(CV.getThresholdFilter(this.smoothFilterThresh));
+        cvFilters.addPass(this.threshFilter);
+
         //const scenePass = new RenderPass(this.parentScene, this.camera);
         //composer.addPass(scenePass);
         this.cvFilters = cvFilters;
@@ -337,6 +362,27 @@ class ARCanvas {
     }
 
     /**
+     * Draw the contours found
+     * @param {list of list of {x, y}} contours Contours
+     */
+    drawContours(contours) {
+        const context = this.context;
+        for (let i = 0; i < contours.length; i++) {
+            context.strokeStyle = "red";
+            context.beginPath();
+            for (let j = 0; j < contours[i].length; j++) {
+                let coord = contours[i][j];
+                context.moveTo(coord.x, coord.y);
+                coord = contours[i][(j+1)%contours[i].length];
+                context.lineTo(coord.x, coord.y);
+            }
+            context.stroke();
+            context.closePath();
+            context.strokeStyle = "red";
+        }
+    }
+
+    /**
      * Infer the pose from the detected markers
      * @param {list} markers List of markers
      */
@@ -369,19 +415,43 @@ class ARCanvas {
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
             this.debugArea.innerHTML += "Successful streaming<p>" + Math.round(1000*this.framesRendered/(thisTime-this.startTime)) + " fps, " + video.videoWidth + " x " + video.videoHeight + ", fov " + this.fov + "</p>";
 
-            /*
-            this.cvFilters.render();
-            this.cvgl.readPixels(0, 0, this.video.videoWidth, this.video.videoHeight, this.cvgl.RGBA, this.cvgl.UNSIGNED_BYTE, this.cvPixels);
-            let data = new ImageData(this.cvPixels, this.video.videoWidth, this.video.videoHeight);
-            let markers = this.detector.detectFast(data);
-            //context.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
-            //context.putImageData(data, 0, 0);*/
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            let markers = this.detector.detect(imageData);
+            let markers = [];
+            if (this.useGPU) {
+                this.cvFilters.render();
+                this.cvgl.readPixels(0, 0, this.video.videoWidth, this.video.videoHeight, this.cvgl.RGBA, this.cvgl.UNSIGNED_BYTE, this.cvPixels);
+                let data = new ImageData(this.cvPixels, this.video.videoWidth, this.video.videoHeight);
+                markers = this.detector.detectFast(data);
+                if (this.debugCanvas) {
+                    context.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
+                    context.putImageData(data, 0, 0);
+                }
+            }
+            else {
+                context.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                let imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                markers = this.detector.detect(imageData);
+                if (this.debugCanvas) {
+                    let debugImg = [];
+                    for (let i = 0; i < this.detector.thres.data.length; i++) {
+                        for (let k = 0; k < 3; k++) {
+                            debugImg.push(this.detector.thres.data[i]);
+                        }
+                        debugImg.push(255);
+                    }
+                    debugImg = new Uint8ClampedArray(debugImg);
+                    debugImg = new ImageData(debugImg, this.video.videoWidth, this.video.videoHeight);
+                    context.putImageData(debugImg, 0, 0);
+                }
+            }
 
             this.printMarkers(markers);
-            this.drawCorners(markers);
+            if (this.debugCanvas) {
+                this.drawCorners(markers);
+                if (this.doDrawContours) {
+                    this.drawContours(this.detector.contours);
+                }
+            }
             let pose = this.getPose(markers);
             if (!(pose === null)) {
                 updateObject(this.sceneRoot, this.modelSize, pose.bestRotation, pose.bestTranslation);

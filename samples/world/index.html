@@ -83,14 +83,16 @@ document.addEventListener('touchmove', function(e) {
         object.add(mesh);
         that.object = object;
         that.sceneRoot.add(object);
-      })
+      });
+      const axesHelper = new THREE.AxesHelper(1);
+      this.sceneRoot.add(axesHelper);
     }
     step(dt) {
       this.object.rotation.z += dt/1000;
     }
   }
-  const config = {"dictionaryName":"ARUCO_MIP_36h12", nMarkers:14};
-  let canvas = new ARCanvasMultiAverage("arcanvas", new WorldScene(), 500, config);
+  const config = {"dictionaryName":"ARUCO_MIP_36h12", nMarkers:14, debugCanvas:true, useGPU:false, doDrawContours:false};
+  let canvas = new ARCanvas("arcanvas", new WorldScene(), 500, config);
 </script>
 
 
