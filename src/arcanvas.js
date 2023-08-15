@@ -3,7 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
-const CANVAS_FAC = 0.6;
+const CANVAS_FAC = 0.9;
 
 function rot3dArr2glMatrix(r) {
     return glMatrix.mat3.fromValues(
