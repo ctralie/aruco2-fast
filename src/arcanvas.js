@@ -228,6 +228,17 @@ class ARCanvas {
             this.renderArea.appendChild(canvas);
         }
         this.context = canvas.getContext("2d");
+
+
+        const canvas2 = document.createElement("canvas");
+        canvas2.width = 50;
+        canvas2.height = 50;
+        this.canvas2 = canvas2;
+        if (this.debugCanvas) {
+            this.renderArea.appendChild(canvas2);
+        }
+        this.context2 = canvas2.getContext("2d");
+
         this.posit = new POS.Posit(this.modelSize, this.video.videoWidth);
         this.lastTime = new Date();
         this.startTime = this.lastTime;
@@ -368,7 +379,7 @@ class ARCanvas {
     drawContours(contours) {
         const context = this.context;
         for (let i = 0; i < contours.length; i++) {
-            context.strokeStyle = "red";
+            context.strokeStyle = "#00ff00";
             context.beginPath();
             for (let j = 0; j < contours[i].length; j++) {
                 let coord = contours[i][j];
@@ -378,7 +389,7 @@ class ARCanvas {
             }
             context.stroke();
             context.closePath();
-            context.strokeStyle = "red";
+            context.strokeStyle = "#00ff00";
         }
     }
 
@@ -405,6 +416,7 @@ class ARCanvas {
         const canvas = this.canvas;
         const video = this.video;
         const context = this.context;
+        const context2 = this.context2;
         const renderer = this.renderer;
         let thisTime = new Date();
         let elapsed = thisTime - this.lastTime;
@@ -445,11 +457,24 @@ class ARCanvas {
                 }
             }
 
+            if (!(this.detector.maxHomography == undefined)) {
+                let debugImg = [];
+                for (let i = 0; i < this.detector.maxHomography.data.length; i++) {
+                    for (let k = 0; k < 3; k++) {
+                        debugImg.push(this.detector.maxHomography.data[i]);
+                    }
+                    debugImg.push(255);
+                }
+                debugImg = new Uint8ClampedArray(debugImg);
+                debugImg = new ImageData(debugImg, this.detector.maxHomography.width, this.detector.maxHomography.height);
+                context2.putImageData(debugImg, 0, 0);
+            }
+
             this.printMarkers(markers);
             if (this.debugCanvas) {
                 this.drawCorners(markers);
                 if (this.doDrawContours) {
-                    this.drawContours(this.detector.contours);
+                    this.drawContours(this.detector.candidates);
                 }
             }
             let pose = this.getPose(markers);
