@@ -303,11 +303,15 @@ AR.Detector.prototype.detect = function (image) {
   this.candidates = this.clockwiseCorners(this.candidates);
   this.candidates = this.notTooNear(this.candidates, 10);
 
-  return this.findMarkers(this.grey, this.candidates, 49);
+  res = this.findMarkers(this.grey, this.candidates, 49);
+  if (!(res.maxCandidate === null)) {
+    this.candidates = [res.maxCandidate];
+  }
+  return res.markers;
 };
 
-AR.Detector.prototype.detectFast = function (image) {
-  let res = CV.findContours(image, this.binary, CV.binaryBorderRGBA);
+AR.Detector.prototype.detectFast = function (thres, grey) {
+  let res = CV.findContours(thres, this.binary, CV.binaryBorderRGBA);
   this.contours = res.contours;
   this.debugImg = res.src;
   //Scale Fix: https://stackoverflow.com/questions/35936397/marker-detection-on-paper-sheet-using-javascript
@@ -316,7 +320,11 @@ AR.Detector.prototype.detectFast = function (image) {
   this.candidates = this.clockwiseCorners(this.candidates);
   this.candidates = this.notTooNear(this.candidates, 10);
 
-  return this.findMarkers(this.grey, this.candidates, 49);
+  res = this.findMarkers(grey, this.candidates, 49, 4);
+  if (!(res.maxCandidate === null)) {
+    this.candidates = [res.maxCandidate];
+  }
+  return res.markers;
 };
 
 AR.Detector.prototype.findCandidates = function (contours, minSize, epsilon, minLength) {
@@ -403,15 +411,40 @@ AR.Detector.prototype.notTooNear = function (candidates, minDist) {
   return notTooNear;
 };
 
-AR.Detector.prototype.findMarkers = function (imageSrc, candidates, warpSize) {
+function getTriArea(tri) {
+  let sides = [];
+  for (let i = 0; i < 3; i++) {
+    let dx = tri[i].x - tri[(i+1)%3].x;
+    let dy = tri[i].y - tri[(i+1)%3].y;
+    sides.push(Math.sqrt(dx*dx + dy*dy));    
+  }
+  let a = sides[0], b = sides[1]; c = sides[2];
+  let s = (a+b+c)/2;
+  return Math.sqrt(s*(s-a)*(s-b)*(s-c));
+}
+
+function getArea(c) {
+  return getTriArea([c[0], c[1], c[2]]) + getTriArea([c[0], c[2], c[3]]);
+}
+
+AR.Detector.prototype.findMarkers = function (imageSrc, candidates, warpSize, jmp) {
   var markers = [],
     len = candidates.length,
     candidate, marker, i;
 
+  let maxArea = 0;
+  let maxCandidate = null;
   for (i = 0; i < len; ++i) {
     candidate = candidates[i];
+    let area = getArea(candidate);
 
-    CV.warp(imageSrc, this.homography, candidate, warpSize);
+    CV.warp(imageSrc, this.homography, candidate, warpSize, jmp);
+
+    if (area > maxArea) {
+      maxArea = area;
+      this.maxHomography = this.homography;
+      maxCandidate = candidates[i];
+    }
 
     CV.threshold(this.homography, this.homography, CV.otsu(this.homography));
 
@@ -421,7 +454,7 @@ AR.Detector.prototype.findMarkers = function (imageSrc, candidates, warpSize) {
     }
   }
 
-  return markers;
+  return {"markers":markers, "maxCandidate":maxCandidate};
 };
 
 AR.Detector.prototype.getMarker = function (imageSrc, candidate) {

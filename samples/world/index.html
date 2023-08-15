@@ -91,7 +91,7 @@ document.addEventListener('touchmove', function(e) {
       this.object.rotation.z += dt/1000;
     }
   }
-  const config = {"dictionaryName":"ARUCO_MIP_36h12", nMarkers:14, debugCanvas:true, useGPU:false, doDrawContours:false};
+  const config = {"dictionaryName":"ARUCO_MIP_36h12", nMarkers:14, debugCanvas:false, useGPU:true, doDrawContours:true};
   let canvas = new ARCanvas("arcanvas", new WorldScene(), 500, config);
 </script>
 

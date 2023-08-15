@@ -515,13 +515,15 @@ CV.approxPolyDP = function(contour, epsilon){
   return poly;
 };
 
-CV.warp = function(imageSrc, imageDst, contour, warpSize){
+CV.warp = function(imageSrc, imageDst, contour, warpSize, jmp){
   var src = imageSrc.data, dst = imageDst.data,
       width = imageSrc.width, height = imageSrc.height,
       pos = 0,
       sx1, sx2, dx1, dx2, sy1, sy2, dy1, dy2, p1, p2, p3, p4,
       m, r, s, t, u, v, w, x, y, i, j;
-
+  if (jmp === undefined) {
+    jmp = 1;
+  }
   m = CV.getPerspectiveTransform(contour, warpSize - 1);
 
   r = m[8];
@@ -559,8 +561,8 @@ CV.warp = function(imageSrc, imageDst, contour, warpSize){
       p3 = p4 = sy2 * width;
 
       dst[pos ++] =
-        (dy2 * (dx2 * src[p1 + sx1] + dx1 * src[p2 + sx2]) +
-         dy1 * (dx2 * src[p3 + sx1] + dx1 * src[p4 + sx2]) ) & 0xff;
+        (dy2 * (dx2 * src[jmp*(p1 + sx1)] + dx1 * src[jmp*(p2 + sx2)]) +
+         dy1 * (dx2 * src[jmp*(p3 + sx1)] + dx1 * src[jmp*(p4 + sx2)]) ) & 0xff;
 
     }
   }

@@ -228,6 +228,16 @@ class ARCanvas {
             this.renderArea.appendChild(canvas);
         }
         this.context = canvas.getContext("2d");
+
+        const canvas2 = document.createElement("canvas");
+        canvas2.width = 50;
+        canvas2.height = 50;
+        this.canvas2 = canvas2;
+        if (this.debugCanvas) {
+            this.renderArea.appendChild(canvas2);
+        }
+        this.context2 = canvas2.getContext("2d");
+
         this.posit = new POS.Posit(this.modelSize, this.video.videoWidth);
         this.lastTime = new Date();
         this.startTime = this.lastTime;
@@ -286,16 +296,23 @@ class ARCanvas {
 
         // Step 4: Setup composite renderer for the CV filters
         this.cvPixels = new Uint8ClampedArray(4*this.video.videoWidth*this.video.videoHeight);
+        this.grayscalePixels = new Uint8ClampedArray(4*this.video.videoWidth*this.video.videoHeight);
+        const grayscaleRenderer = new THREE.WebGLRenderer({antialias:false});
         const cvRenderer = new THREE.WebGLRenderer({antialias:false});
         //renderArea.appendChild(cvRenderer.domElement);
         cvRenderer.setSize(this.video.videoWidth, this.video.videoHeight);
         this.cvRenderer = cvRenderer;
+        grayscaleRenderer.setSize(this.video.videoWidth, this.video.videoHeight);
+        this.grayscaleRenderer = grayscaleRenderer;
         let cvFilters = new EffectComposer(cvRenderer);
-        const initialWebcam = new RenderPass(this.cvScene, this.cvCamera);
-        cvFilters.addPass(initialWebcam);
+        let grayscaleFilters = new EffectComposer(grayscaleRenderer);
+        this.initialWebcam = new RenderPass(this.cvScene, this.cvCamera);
+        cvFilters.addPass(this.initialWebcam);
+        grayscaleFilters.addPass(this.initialWebcam);
 
         this.grayscaleFilter = new ShaderPass(CV.GrayscaleAndFlipShader);
         cvFilters.addPass(this.grayscaleFilter);
+        grayscaleFilters.addPass(this.grayscaleFilter);
 
         this.gaussFilterX = new ShaderPass(CV.getGaussFilt1d(1, 1/this.video.videoWidth));
         cvFilters.addPass(this.gaussFilterX);
@@ -310,6 +327,8 @@ class ARCanvas {
         //composer.addPass(scenePass);
         this.cvFilters = cvFilters;
         this.cvgl = cvRenderer.getContext("webgl");
+        this.grayscaleFilters = grayscaleFilters;
+        this.grayscalegl = grayscaleRenderer.getContext("webgl");
 
         this.img = document.createElement("img");
         renderArea.appendChild(this.img);
@@ -419,11 +438,16 @@ class ARCanvas {
             if (this.useGPU) {
                 this.cvFilters.render();
                 this.cvgl.readPixels(0, 0, this.video.videoWidth, this.video.videoHeight, this.cvgl.RGBA, this.cvgl.UNSIGNED_BYTE, this.cvPixels);
-                let data = new ImageData(this.cvPixels, this.video.videoWidth, this.video.videoHeight);
-                markers = this.detector.detectFast(data);
+                let thres = new ImageData(this.cvPixels, this.video.videoWidth, this.video.videoHeight);
+
+                this.grayscaleFilters.render();
+                this.grayscalegl.readPixels(0, 0, this.video.videoWidth, this.video.videoHeight, this.cvgl.RGBA, this.cvgl.UNSIGNED_BYTE, this.grayscalePixels);
+                let grey = new ImageData(this.grayscalePixels, this.video.videoWidth, this.video.videoHeight);
+
+                markers = this.detector.detectFast(thres, grey);
                 if (this.debugCanvas) {
                     context.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
-                    context.putImageData(data, 0, 0);
+                    context.putImageData(grey, 0, 0);
                 }
             }
             else {
@@ -445,11 +469,26 @@ class ARCanvas {
                 }
             }
 
+
+            if (this.debugCanvas && !(this.detector.maxHomography == undefined)) {
+                let context2 = this.context2;
+                let debugImg = [];
+                for (let i = 0; i < this.detector.maxHomography.data.length; i++) {
+                    for (let k = 0; k < 3; k++) {
+                        debugImg.push(this.detector.maxHomography.data[i]);
+                    }
+                    debugImg.push(255);
+                }
+                debugImg = new Uint8ClampedArray(debugImg);
+                debugImg = new ImageData(debugImg, this.detector.maxHomography.width, this.detector.maxHomography.height);
+                context2.putImageData(debugImg, 0, 0);
+            }
+
             this.printMarkers(markers);
             if (this.debugCanvas) {
                 this.drawCorners(markers);
                 if (this.doDrawContours) {
-                    this.drawContours(this.detector.contours);
+                    this.drawContours(this.detector.candidates);
                 }
             }
             let pose = this.getPose(markers);
